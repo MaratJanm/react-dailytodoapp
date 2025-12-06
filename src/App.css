@@ -1,0 +1,437 @@
+/* ====================== CSS-переменные ====================== */
+:root {
+  --bg-color: #f5f5f5;
+  --text-color: #333;
+  --text-secondary: #666;
+  --text-muted: #999;
+
+  --card-bg: #fff;
+  --card-bg-completed: #f9f9f9;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 2px 12px rgba(0, 0, 0, 0.15);
+  --section-bg: #f8f9fa;
+
+  --input-bg: #fff;
+  --input-border: #e0e0e0;
+
+  --button-bg: #f5f5f5;
+  --button-border: #ddd;
+  --button-hover: #ebebeb;
+  --button-text: #555;
+
+  --primary-color: #4CAF50;
+  --primary-hover: #45a049;
+
+  --progress-bg: #e8f5e9;
+  --progress-text: #2e7d32;
+  --checkmark-color: #4CAF50;
+
+  --icon-edit-color: #666;
+  --icon-edit-hover-bg: #e3f2fd;
+  --icon-edit-hover-color: #1976D2;
+  --icon-delete-color: #666;
+  --icon-delete-hover-bg: #ffebee;
+  --icon-delete-hover-color: #d32f2f;
+}
+
+[data-theme="dark"] {
+  --bg-color: #121212;
+  --text-color: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888;
+
+  --card-bg: #1e1e1e;
+  --card-bg-completed: #2a2a2a;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --section-bg: #252525;
+
+  --input-bg: #2a2a2a;
+  --input-border: #444;
+
+  --button-bg: #2a2a2a;
+  --button-border: #444;
+  --button-hover: #333;
+  --button-text: #ccc;
+
+  --progress-bg: #1b3a1f;
+  --progress-text: #81c784;
+  --checkmark-color: #66bb6a;
+
+  --icon-edit-color: #999;
+  --icon-edit-hover-bg: rgba(33, 150, 243, 0.15);
+  --icon-edit-hover-color: #64b5f6;
+  --icon-delete-color: #999;
+  --icon-delete-hover-bg: rgba(244, 67, 54, 0.15);
+  --icon-delete-hover-color: #ef5350;
+}
+
+/* ====================== Базовые стили ====================== */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* ====================== Шапка ====================== */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.header-center {
+  grid-column: 2;
+  text-align: center;
+  min-width: 300px;
+}
+
+.header-right {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.title {
+  color: var(--text-color);
+  margin: 0 0 5px 0;
+  font-size: 2rem;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Кнопки бэкапа и переключатель темы */
+.backup-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.backup-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--button-text);
+  white-space: nowrap;
+}
+
+.backup-button:hover {
+  background-color: var(--button-hover);
+  transform: translateY(-1px);
+}
+
+.theme-toggle {
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  color: var(--button-text);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--button-hover);
+  transform: scale(1.05);
+}
+
+/* ====================== Основной контент ====================== */
+.content { max-width: 700px; margin: 0 auto; }
+
+.add-form {
+  background-color: var(--card-bg);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 20px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  background-color: var(--input-bg);
+  border: 2px solid var(--input-border);
+  border-radius: 8px;
+  outline: none;
+  color: var(--text-color);
+  transition: border-color 0.2s, background-color 0.3s ease;
+}
+
+.input:focus { border-color: var(--primary-color); }
+
+.progressive-options {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: var(--section-bg);
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.checkbox {
+  margin-right: 8px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.increment-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.increment-input {
+  width: 70px;
+  padding: 6px 10px;
+  font-size: 14px;
+  background-color: var(--input-bg);
+  border: 2px solid var(--input-border);
+  border-radius: 6px;
+  outline: none;
+  color: var(--text-color);
+}
+
+.increment-input:focus { border-color: var(--primary-color); }
+
+.add-button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-button:hover { background-color: var(--primary-hover); }
+
+/* ====================== Список задач ====================== */
+.task-list { display: flex; flex-direction: column; gap: 10px; }
+
+.empty-text {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px;
+}
+
+.task-item {
+  background-color: var(--card-bg);
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover { box-shadow: var(--card-shadow-hover); }
+.task-item.completed { background-color: var(--card-bg-completed); }
+
+.task-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.task-text {
+  font-size: 16px;
+  color: var(--text-color);
+  transition: color 0.2s;
+}
+
+.task-text.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.progress-badge {
+  font-size: 12px;
+  background-color: var(--progress-bg);
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: var(--progress-text);
+  white-space: nowrap;
+}
+
+.checkmark { font-size: 18px; color: var(--checkmark-color); }
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 10px;
+}
+
+.action-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.action-button.edit { color: var(--icon-edit-color); }
+.action-button.edit:hover {
+  background-color: var(--icon-edit-hover-bg);
+  color: var(--icon-edit-hover-color);
+  transform: scale(1.1);
+}
+
+.action-button.delete { color: var(--icon-delete-color); }
+.action-button.delete:hover {
+  background-color: var(--icon-delete-hover-bg);
+  color: var(--icon-delete-hover-color);
+  transform: scale(1.1);
+}
+
+.action-button.save {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.action-button.save:hover {
+  background-color: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.action-button.cancel {
+  background-color: var(--button-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--button-border);
+}
+
+.action-button.cancel:hover {
+  background-color: var(--button-hover);
+  transform: scale(1.1);
+}
+
+/* Редактирование */
+.edit-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+.edit-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  background-color: var(--input-bg);
+  border: 2px solid var(--input-border);
+  border-radius: 6px;
+  outline: none;
+  color: var(--text-color);
+}
+
+.edit-input:focus { border-color: var(--primary-color); }
+
+.edit-buttons { display: flex; gap: 8px; }
+
+/* Футер */
+.footer {
+  text-align: center;
+  margin-top: 30px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ====================== Адаптивность ====================== */
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .header-center { grid-column: 1; }
+  .header-right { grid-column: 1; justify-self: center; }
+  .header-controls { align-items: center; }
+  .title { font-size: 1.8rem; }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 15px; }
+  .backup-buttons { width: 100%; justify-content: center; }
+  
+  .task-item { 
+    padding: 12px;
+    /* Убираем flex-direction: column! */
+    /* flex-direction остаётся row (по умолчанию) */
+  }
+  
+  .task-content {
+    /* Позволяем контенту сжиматься */
+    min-width: 0;
+    flex: 1;
+  }
+  
+  .task-text {
+    /* Текст может переноситься на вторую строку */
+    word-break: break-word;
+  }
+  
+  .task-actions { 
+    /* Кнопки НЕ сжимаются */
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  
+  .theme-toggle { width: 36px; height: 36px; font-size: 16px; }
+  .action-button { width: 36px; height: 36px; }
+}

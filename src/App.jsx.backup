@@ -1,0 +1,530 @@
+import React, { useState, useEffect, useCallback } from 'react';
+
+// Task interface definition (converted from TypeScript)
+const TaskInterface = {
+  id: '',
+  text: '',
+  completed: false,
+  createdAt: '', // ISO date string
+  lastResetDate: '', // для отслеживания ежедневного сброса
+  isProgressive: false,
+  progressConfig: undefined
+};
+
+const STORAGE_KEY = 'todo-app-tasks';
+
+// Получить текущую дату в формате YYYY-MM-DD
+const getTodayDate = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
+
+// Вычислить количество дней между двумя датами
+const daysBetween = (date1: string, date2: string): number => {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  const diffTime = Math.abs(d2.getTime() - d1.getTime());
+  return Math.floor(diffTime / (1000 * 60 * 24));
+};
+
+// Найти первое число в тексте
+const findNumberInText = (text: string): { number: number; start: number; end: number } | null => {
+  const match = text.match(/\d+/);
+  if (match && match.index !== undefined) {
+    return {
+      number: parseInt(match[0], 10),
+      start: match.index,
+      end: match.index + match[0].length
+    };
+  }
+  return null;
+};
+
+// Получить актуальный текст задачи с учётом прогресса
+const getDisplayText = (task: Task): string => {
+  if (!task.isProgressive || !task.progressConfig) {
+    return task.text;
+  }
+  
+  const days = daysBetween(task.createdAt, getTodayDate());
+  const currentNumber = task.progressConfig.originalNumber + (days * task.progressConfig.increment);
+  const { start, end } = task.progressConfig.numberPosition;
+  
+  return task.text.substring(0, start) + currentNumber + task.text.substring(end);
+};
+
+function App() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTaskText, setNewTaskText] = useState('');
+  const [isProgressive, setIsProgressive] = useState(false);
+  const [increment, setIncrement] = useState(1);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editIsProgressive, setEditIsProgressive] = useState(false);
+  const [editIncrement, setEditIncrement] = useState(1);
+
+  // Загрузка задач из localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed: Task[] = JSON.parse(stored);
+        const today = getTodayDate();
+        
+        // Сброс выполненных задач если день изменился
+        const updated = parsed.map(task => {
+          if (task.lastResetDate !== today && task.completed) {
+            return { ...task, completed: false, lastResetDate: today };
+          }
+          return { ...task, lastResetDate: today };
+        });
+        
+        setTasks(updated);
+      } catch (e) {
+        console.error('Failed to parse tasks', e);
+      }
+    }
+  }, []);
+
+  // Сохранение в localStorage при изменении
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }, [tasks]);
+
+  // Добавление задачи
+  const addTask = useCallback(() => {
+    if (!newTaskText.trim()) return;
+
+    const numberInfo = findNumberInText(newTaskText);
+    const today = getTodayDate();
+
+    const newTask: Task = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      text: newTaskText,
+      completed: false,
+      createdAt: today,
+      lastResetDate: today,
+      isProgressive: isProgressive && numberInfo !== null,
+      progressConfig: isProgressive && numberInfo ? {
+        originalNumber: numberInfo.number,
+        increment: increment,
+        numberPosition: { start: numberInfo.start, end: numberInfo.end }
+      } : undefined
+    };
+
+    setTasks(prev => [...prev, newTask]);
+    setNewTaskText('');
+    setIsProgressive(false);
+    setIncrement(1);
+  }, [newTaskText, isProgressive, increment]);
+
+  // Переключение статуса выполнения
+  const toggleComplete = useCallback((id: string) => {
+    setTasks(prev => prev.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  }, []);
+
+  // Удаление задачи
+  const deleteTask = useCallback((id: string) => {
+    setTasks(prev => prev.filter(task => task.id !== id));
+  }, []);
+
+  // Начать редактирование
+  const startEdit = useCallback((task: Task) => {
+    setEditingId(task.id);
+    setEditText(task.text);
+    setEditIsProgressive(task.isProgressive);
+    setEditIncrement(task.progressConfig?.increment || 1);
+  }, []);
+
+  // Сохранить редактирование
+  const saveEdit = useCallback(() => {
+    if (!editingId || !editText.trim()) return;
+
+    const numberInfo = findNumberInText(editText);
+    const today = getTodayDate();
+
+    setTasks(prev => prev.map(task => {
+      if (task.id !== editingId) return task;
+      
+      return {
+        ...task,
+        text: editText,
+        createdAt: today, // Сбрасываем дату при редактировании прогрессии
+        isProgressive: editIsProgressive && numberInfo !== null,
+        progressConfig: editIsProgressive && numberInfo ? {
+          originalNumber: numberInfo.number,
+          increment: editIncrement,
+          numberPosition: { start: numberInfo.start, end: numberInfo.end }
+        } : undefined
+      };
+    }));
+
+    setEditingId(null);
+    setEditText('');
+  }, [editingId, editText, editIsProgressive, editIncrement]);
+
+  // Отмена редактирования
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditText('');
+  }, []);
+
+  const hasNumberInNewTask = findNumberInText(newTaskText) !== null;
+  const hasNumberInEditTask = findNumberInText(editText) !== null;
+
+  return (
+    <div style={styles.container}>
+      <h1 style={styles.title}>📋 Daily Todo</h1>
+      <p style={styles.subtitle}>Задачи сбрасываются каждый день</p>
+
+      {/* Форма добавления */}
+      <div style={styles.addForm}>
+        <input
+          type="text"
+          value={newTaskText}
+          onChange={(e) => setNewTaskText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addTask()}
+          placeholder="Новая задача..."
+          style={styles.input}
+        />
+        
+        {hasNumberInNewTask && (
+          <div style={styles.progressiveOptions}>
+            <label style={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isProgressive}
+                onChange={(e) => setIsProgressive(e.target.checked)}
+                style={styles.checkbox}
+              />
+              Прогрессирующая задача
+            </label>
+            
+            {isProgressive && (
+              <div style={styles.incrementWrapper}>
+                <span>Прирост в день:</span>
+                <input
+                  type="number"
+                  value={increment}
+                  onChange={(e) => setIncrement(Number(e.target.value))}
+                  style={styles.incrementInput}
+                  min={1}
+                />
+              </div>
+            )}
+          </div>
+        )}
+        
+        <button onClick={addTask} style={styles.addButton}>
+          Добавить
+        </button>
+      </div>
+
+      {/* Список задач */}
+      <div style={styles.taskList}>
+        {tasks.length === 0 && (
+          <p style={styles.emptyText}>Нет задач. Добавьте первую!</p>
+        )}
+        
+        {tasks.map(task => (
+          <div 
+            key={task.id} 
+            style={{
+              ...styles.taskItem,
+              ...(task.completed ? styles.taskCompleted : {})
+            }}
+          >
+            {editingId === task.id ? (
+              // Режим редактирования
+              <div style={styles.editForm}>
+                <input
+                  type="text"
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  style={styles.editInput}
+                  autoFocus
+                />
+                
+                {hasNumberInEditTask && (
+                  <div style={styles.progressiveOptions}>
+                    <label style={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={editIsProgressive}
+                        onChange={(e) => setEditIsProgressive(e.target.checked)}
+                        style={styles.checkbox}
+                      />
+                      Прогрессирующая
+                    </label>
+                    
+                    {editIsProgressive && (
+                      <div style={styles.incrementWrapper}>
+                        <span>Прирост:</span>
+                        <input
+                          type="number"
+                          value={editIncrement}
+                          onChange={(e) => setEditIncrement(Number(e.target.value))}
+                          style={styles.incrementInput}
+                          min={1}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div style={styles.editButtons}>
+                  <button onClick={saveEdit} style={styles.saveButton}>💾</button>
+                  <button onClick={cancelEdit} style={styles.cancelButton}>✕</button>
+                </div>
+              </div>
+            ) : (
+              // Обычный режим
+              <>
+                <div 
+                  style={styles.taskContent}
+                  onClick={() => toggleComplete(task.id)}
+                >
+                  <span style={{
+                    ...styles.taskText,
+                    ...(task.completed ? styles.taskTextCompleted : {})
+                  }}>
+                    {getDisplayText(task)}
+                  </span>
+                  
+                  {task.isProgressive && (
+                    <span style={styles.progressBadge}>
+                      📈 +{task.progressConfig?.increment}/день
+                    </span>
+                  )}
+                  
+                  {task.completed && (
+                    <span style={styles.checkmark}>✓</span>
+                  )}
+                </div>
+                
+                <div style={styles.taskActions}>
+                  <button 
+                    onClick={() => startEdit(task)} 
+                    style={styles.editButton}
+                    title="Редактировать"
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    onClick={() => deleteTask(task.id)} 
+                    style={styles.deleteButton}
+                    title="Удалить"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <footer style={styles.footer}>
+        <small>Данные хранятся только в вашем браузере</small>
+      </footer>
+    </div>
+  );
+}
+
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    maxWidth: '600px',
+    margin: '0 auto',
+    padding: '20px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    minHeight: '100vh',
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: '5px',
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: '14px',
+    marginTop: '0',
+    marginBottom: '30px',
+  },
+  addForm: {
+    backgroundColor: '#fff',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    marginBottom: '20px',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    fontSize: '16px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '8px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  },
+  progressiveOptions: {
+    marginTop: '12px',
+    padding: '12px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '8px',
+  },
+  checkboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#555',
+  },
+  checkbox: {
+    marginRight: '8px',
+    width: '18px',
+    height: '18px',
+  },
+  incrementWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '10px',
+    fontSize: '14px',
+    color: '#555',
+  },
+  incrementInput: {
+    width: '70px',
+    padding: '6px 10px',
+    fontSize: '14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '6px',
+    outline: 'none',
+  },
+  addButton: {
+    width: '100%',
+    marginTop: '12px',
+    padding: '12px',
+    fontSize: '16px',
+    fontWeight: '600',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  taskList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    padding: '40px',
+  },
+  taskItem: {
+    backgroundColor: '#fff',
+    padding: '16px',
+    borderRadius: '10px',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    transition: 'all 0.2s',
+  },
+  taskCompleted: {
+    backgroundColor: '#f9f9f9',
+  },
+  taskContent: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    cursor: 'pointer',
+  },
+  taskText: {
+    fontSize: '16px',
+    color: '#333',
+    transition: 'all 0.2s',
+  },
+  taskTextCompleted: {
+    textDecoration: 'line-through',
+    color: '#999',
+  },
+  progressBadge: {
+    marginLeft: '10px',
+    fontSize: '12px',
+    backgroundColor: '#e8f5e9',
+    padding: '2px 6px',
+    borderRadius: '12px',
+    color: '#2e7d32',
+  },
+  checkmark: {
+    marginLeft: '10px',
+    fontSize: '18px',
+    color: '#4CAF50',
+  },
+  taskActions: {
+    display: 'flex',
+    gap: '8px',
+  },
+  editButton: {
+    padding: '6px 10px',
+    backgroundColor: '#2196F3',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  deleteButton: {
+    padding: '6px 10px',
+    backgroundColor: '#f44336',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  editForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  editInput: {
+    padding: '8px 12px',
+    fontSize: '14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '6px',
+    boxSizing: 'border-box',
+  },
+  editButtons: {
+    display: 'flex',
+    gap: '8px',
+  },
+  saveButton: {
+    padding: '6px 12px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  cancelButton: {
+    padding: '6px 12px',
+    backgroundColor: '#9e9e9e',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  footer: {
+    textAlign: 'center',
+    marginTop: '30px',
+    color: '#999',
+    fontSize: '12px',
+  },
+};
